@@ -172,3 +172,22 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# React Native / Node
+node_modules/
+*.log
+*.tsbuildinfo
+*.env
+
+# Expo
+.expo/
+.expo-shared/
+
+# iOS
+ios/Pods/
+ios/build/
+ios/DerivedData/
+
+# Android
+android/.gradle/
+android/app/build/
