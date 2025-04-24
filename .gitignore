@@ -191,3 +191,10 @@ ios/DerivedData/
 # Android
 android/.gradle/
 android/app/build/
+
+# Uploaded videos (user files, not code)
+backend/videos/
+
+# Optional future model or analysis data
+backend/data/
+backend/models/
