@@ -4,6 +4,7 @@ import os
 import json
 from datetime import datetime
 import glob
+from .analyzer import analyze_video
 
 router = APIRouter()
 
@@ -12,6 +13,7 @@ async def upload_video(
     user_id: str = Form(...),
     file: UploadFile = File(...),
     lift_type: str = Form(...),
+    side: str = Form("right"),
     notes: str = Form(None)
 ):
     # create the user directory (if it doesn't exist already)
@@ -33,6 +35,7 @@ async def upload_video(
         "filename": file.filename,
         "upload_time": datetime.now().isoformat(),
         "lift_type": lift_type,
+        "side": side,
         "notes": notes
     }
 
@@ -52,7 +55,7 @@ def get_history(user_id: str = Query(...)):
     if not os.path.exists(video_dir):
         raise HTTPException(status_code=404, detail="User not found")
 
-    metadata_files = glob.glob(f"{video_dir}/*.json") # find all .json files in videos/
+    metadata_files = glob.glob(f"{video_dir}/*.json") # find all .json files in videos/user_id
     history = []
 
     # read each metadata file and add it to the history list
@@ -67,21 +70,26 @@ def get_history(user_id: str = Query(...)):
 @router.post("/feedback/")
 def get_feedback(
     user_id: str = Form(...),
-    filename: str = Form(...)
+    filename: str = Form(...),
 ):
     user_dir = os.path.join("videos", user_id)
-    video_path = os.path.join(user_dir, filename)
+    if not filename.endswith(".mov"):
+        filename += ".mov"
 
+    video_path = os.path.join(user_dir, filename)
     if not os.path.exists(video_path):
-        raise HTTPException(status_code=404, detail="Video not found")
+        raise HTTPException(status_code=404, detail=f"Video not found, path={video_path}")
     
-    # for now, return fake feedback
-    feedback = {
-        "lift_type": "squat",
-        "depth": "below parallel",
-        "back_position": "neutral",
-        "knee_tracking": "knees caving in slightly",
-        "verdict": "Needs improvement"
-    }
+    metadata_path = os.path.splitext(video_path)[0] + ".json" # get json data for this video
+    if not os.path.exists(metadata_path):
+        raise HTTPException(status_code=404, detail=f"Metadata not found, path={metadata_path}")
+    
+    # get the side of analysis stored in the json data
+    with open(metadata_path, "r") as meta_file:
+        metadata = json.load(meta_file)
+        side = metadata.get("side", "right") # default to right if missing
+    
+    # real feedback from analyzer
+    feedback = analyze_video(video_path, side)
 
     return {"filename": filename, "feedback": feedback}
